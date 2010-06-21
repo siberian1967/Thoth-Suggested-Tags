@@ -20,9 +20,13 @@ function add_box()
 
 function box_routine()
 {
-	$wordfreq = post_generate_tag_list();
+	$wordfreq = tag_list_generate_post();
+	$tags_db = tag_list_generate_db();
 	
-	//Print elements of array
+	//$tags = $wordfreq;
+	//array_push($tags, $tags_db);
+	
+	//Print elements of wordfreq
 	$i = 0;
 	$limit = 20;
 	foreach($wordfreq as $key => $value)
@@ -30,22 +34,34 @@ function box_routine()
 		if($i++ == $limit) break;
 		echo "$key => $value <br/>\n";
 	}
+	//Print elements of tags_db
+	
+	foreach($tags_db as $tag)
+	{
+		echo "$tag <br/>\n";
+	}
+	
 }
 
-function db_generate_tag_list()
+function tag_list_generate_db()
 {//Generates tags from existing tags in the database
 	global $post, $wpdb, $post_ID;
 	
 	$tags = get_terms('post_tag', "get=all");
+	foreach($tags as &$tag_object)
+	{
+		$tag_object = $tag_object->name;
+	}
 	
 	if($tags)
 	{
 		//Initialize
-		$recommended_tags = "";
-		$all_tags = "";
+		$tags_recommended = "";
+		$tags_all = "";
+		$tags_checked = array("");
 		
 		//Retrieve post
-		$content = strip_tags($wpdb->get_var("SELECT post_content FROM $wpdb->posts WHERE ID = 'post_ID' LIMIT 1"));
+		$content = strip_tags($wpdb->get_var("SELECT post_content FROM $wpdb->posts WHERE ID = '$post_ID' LIMIT 1"));
 		$content .= $post->post_title;
 		//$content = preg_replace();
 		
@@ -53,18 +69,18 @@ function db_generate_tag_list()
 		{
 			if(stristr($content, $tag))
 			{
-				
-				break;
+				array_push($tags_checked, $tag);
 			}
 		}
+		return $tags_checked;
 	}
 }
 
-function post_generate_tag_list()
-{//Generates tags from post content
+function tag_list_generate_post()
+{//Generates tags from post content (word frequency)
 	global $post;
 	$content =  $post->post_content;
-	$content .= $post->post_title;
+	$content .= " ".$post->post_title;
 	$content = strtolower($content);
 	$wordfreq = array_count_values(str_word_count($content, 1, '0'));
 	arsort($wordfreq);
