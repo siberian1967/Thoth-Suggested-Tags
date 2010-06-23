@@ -2,13 +2,24 @@
 /*
 Plugin Name: Rec Tags Redux
 Plugin URI: #
-Description: Recommends Tags based on post content as well as any existing tags.
+Description: Recommends tags based on post content as well as any existing tags in the database.
 Plugin logic based on CyberNet's "Recommended Tags" plugin for WP 2.7.
-Version: 0.3
+Version: 0.4
 Author: Jimmy O'Higgins
 */
 
+//TODO
+/*
+Stemming function to compare two strings
+Stemming in database recs
+Stemming in final recs
+Stemming in post recs
+STEMMING EVERYWHERE
+*/
+
 require("PorterStemmer.php");
+ini_set('display_errors',1);
+error_reporting(E_ALL);
 
 function add_box()
 {
@@ -22,34 +33,47 @@ function add_box()
 
 function box_routine()
 {
-	$wordfreq = tag_list_generate_post();
+	$tags_post = tag_list_generate_post();
 	$tags_db = tag_list_generate_db();
 	
-	//$tags = $wordfreq;
-	//array_push($tags, $tags_db);
-	
-	//Print elements of wordfreq
-	echo "Word Frequency table<br/>\n";
+	//Final recommendations
+	echo "Final recommendations<br/>\n";
+	$tags_rec = $tags_post;
+	foreach($tags_rec as $tag_name => &$tag_strength)
+	{
+		if(array_key_exists($tag_name, $tags_db))
+		{
+			$tag_strength *= 2;
+			$tag_strength += $tags_db[$tag_name];
+		}
+	}
+	//Print finals
 	$i = 0;
 	$limit = 15;
-	foreach($wordfreq as $key => $value)
+	foreach($tags_rec as $tag_name => $tag_strength)
 	{
 		if($i++ == $limit) break;
-		echo "&nbsp $key => $value <br/>\n";
+		echo "&nbsp&nbsp&nbsp $tag_name => $tag_strength <br/>\n";
+	}
+	
+	
+	
+	//Print elements of tags_post
+	echo "Recommended tags from post<br/>\n";
+	$i = 0;
+	$limit = 15;
+	foreach($tags_post as $phrase => $strength)
+	{
+		if($i++ == $limit) break;
+		echo "&nbsp&nbsp&nbsp $phrase => $strength <br/>\n";
 	}
 	
 	//Print elements of tags_db
-	echo "Recommended tags<br/>\n";
-	foreach($tags_db as $tag)
+	echo "Recommended tags from db<br/>\n";
+	foreach($tags_db as $tag_name => $tag_strength)
 	{
-		echo "&nbsp $tag <br/>\n";
+		echo "&nbsp&nbsp&nbsp $tag_name => $tag_strength <br/>\n";
 	}
-	$word = 'test';
-	$test = PorterStemmer::Stem($word);
-	echo($test);
-	?>
-	<a style="font-size: 15pt;" title="5 topics" class="tag-link-10" href="#">gettysburg</a>
-	<?php
 }
 
 function tag_list_generate_db()
@@ -58,28 +82,33 @@ function tag_list_generate_db()
 	
 	//Get tags from database
 	$tags = get_terms('post_tag', "get=all");
+	$tags_rec = array();
+	
 	//Flatten tag array so it only includes the tag name
-	foreach($tags as &$tag_object)
+	foreach($tags as $tag_object)
 	{
-		$tag_object = $tag_object->name;
+		$name = trim($tag_object->name);
+		$strength = $tag_object->count;
+		$tags_rec[$name] = $strength;
 	}
 	
-	if($tags)
-	{
-		$tags_rec = array();
-		
-		//Retrieve post
-		$content = strip_tags($wpdb->get_var("SELECT post_content FROM $wpdb->posts WHERE ID = '$post_ID' LIMIT 1"));
-		$content .= $post->post_title;
-		//$content = preg_replace();
+	arsort($tags_rec);
+
+	if($tags_rec)
+	{	
+		$content = $post->post_title;
+		$content .=  " ".$post->post_content;
+		$content = strip_tags($content);
+		$content = strtolower($content);
+		$content = preg_replace('/[-",.;—]/', '', $content);
 		
 		//Evaluate tags
-		foreach($tags as $tag)
+		foreach($tags_rec as $tag_name => $tag_strength)
 		{
 			//Check for match
-			if(stristr($content, $tag))
+			if(!stristr($content, $tag_name))
 			{
-				array_push($tags_rec, $tag);
+				unset($tags_rec[$tag_name]);
 			}
 		}
 		//Return only the matches
@@ -88,30 +117,51 @@ function tag_list_generate_db()
 }
 
 function tag_list_generate_post()
-{//Generates tags from post content (word frequency)
+{
 	global $post;
-	$content =  $post->post_content;
-	$content .= " ".$post->post_title;
+	$content = $post->post_title;
+	$content .=  " ".$post->post_content;
+	$content = strip_tags($content);
 	$content = strtolower($content);
-	$content = preg_replace('/[,.;]/', '', $content);
-
-	$stop_words = "/(".str_replace(",", " | ", "a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your").")/";
+	$content = preg_replace('/[-",.;—]/', '', $content);
+	$content_exploded = explode(" ", $content);
+	$phrases = array();
 	
-	echo($stop_words);
+	$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,don't,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
 	
-	$content_stopped = preg_split($stop_words, $content);
-	//$content_stopped = preg_replace('/[^\w-]+/', '', $content_stopped);
-	
-	foreach($content_stopped as $string)
+	for($phrase_length = 1; $phrase_length < 4; $phrase_length++)
 	{
-		echo "$string <br/>\n";
+		for($phrase_start = 0; $phrase_start < count($content_exploded); $phrase_start++)
+		{
+			$phrase = '';
+			for($word = 0; $word < $phrase_length; $word++)
+			{
+				$position = $phrase_start+$word;
+				if(array_key_exists($position, $content_exploded))
+				{
+					$phrase .= $content_exploded[$position]." ";
+					if(!(str_word_count($phrase) < $phrase_length)
+						&& !stristr($stop_words, $phrase))
+					{
+						$phrase = trim($phrase);
+						array_push($phrases, $phrase);
+					}
+				}
+			}
+		}
+	}
+	$phrases = array_count_values($phrases);
+	
+	foreach($phrases as $phrase => &$strength)
+	{
+		//$multiplier = str_word_count($phrase);
+		$multiplier = 1;
+		$strength *= $multiplier;
 	}
 	
+	arsort($phrases);
 	
-	$wordfreq = array_count_values(str_word_count($content, 1, '0'));
-	arsort($wordfreq);
-	
-	return $wordfreq;
+	return $phrases;
 }
 
 /*
