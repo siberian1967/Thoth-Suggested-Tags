@@ -33,6 +33,7 @@ function add_box()
 
 function box_routine()
 {
+	$indent = "&nbsp&nbsp&nbsp";
 	$tags_post = tag_list_generate_post();
 	$tags_db = tag_list_generate_db();
 	
@@ -53,7 +54,7 @@ function box_routine()
 	foreach($tags_rec as $tag_name => $tag_strength)
 	{
 		if($i++ == $limit) break;
-		echo "&nbsp&nbsp&nbsp $tag_name => $tag_strength <br/>\n";
+		echo "$indent $tag_name => $tag_strength <br/>\n";
 	}
 	
 	
@@ -65,14 +66,14 @@ function box_routine()
 	foreach($tags_post as $phrase => $strength)
 	{
 		if($i++ == $limit) break;
-		echo "&nbsp&nbsp&nbsp $phrase => $strength <br/>\n";
+		echo "$indent $phrase => $strength <br/>\n";
 	}
 	
 	//Print elements of tags_db
 	echo "Recommended tags from db<br/>\n";
 	foreach($tags_db as $tag_name => $tag_strength)
 	{
-		echo "&nbsp&nbsp&nbsp $tag_name => $tag_strength <br/>\n";
+		echo "$indent $tag_name => $tag_strength <br/>\n";
 	}
 }
 
@@ -138,24 +139,64 @@ function tag_list_generate_post()
 			{
 				$position = $phrase_start+$word;
 				if(array_key_exists($position, $content_exploded))
-				{
+				{//Build phrase
 					$phrase .= $content_exploded[$position]." ";
-					if(!(str_word_count($phrase) < $phrase_length)
-						&& !stristr($stop_words, $phrase))
+				}
+			}
+			
+			if(!(str_word_count($phrase) < $phrase_length)
+				&& !stristr($stop_words, $phrase))
+			{
+				$phrase_exploded = explode(" ", $phrase);
+				array_pop($phrase_exploded);
+				$first_word = trim($phrase_exploded[0]);
+				
+				while(!empty($phrase_exploded))
+				{
+					if(stristr($stop_words, $first_word))
 					{
-						$phrase = trim($phrase);
-						array_push($phrases, $phrase);
+						//echo "original: ";
+						//print_exploded($phrase_exploded);
+						
+						$phrase_exploded = array_reverse($phrase_exploded);
+						//echo "deleting: $first_word from ";
+						//print_exploded($phrase_exploded);
+						$deleted = array_pop($phrase_exploded);
+						
+						if(empty($phrase_exploded))
+						{
+							break;
+						}
+						
+						//echo "now it's: ";
+						//print_exploded($phrase_exploded);
+						$phrase_exploded = array_reverse($phrase_exploded);
+						$first_word = trim($phrase_exploded[0]);
 					}
+					else
+					{
+						break;
+					}
+				}
+				
+				if(!empty($phrase_exploded))
+				{
+					$phrase = implode(" ", $phrase_exploded);
+					
+					//echo "adding phrase $phrase to array<br/>";
+					$phrase = trim($phrase);
+					array_push($phrases, $phrase);
 				}
 			}
 		}
 	}
+	
 	$phrases = array_count_values($phrases);
 	
 	foreach($phrases as $phrase => &$strength)
 	{
-		//$multiplier = str_word_count($phrase);
-		$multiplier = 1;
+		$multiplier = str_word_count($phrase);
+		//$multiplier = 1;
 		$strength *= $multiplier;
 	}
 	
@@ -170,6 +211,23 @@ function generate_tag_list()
 	
 }
 */
+
+function print_exploded($array)
+{
+	$exploded = $array;
+	foreach($exploded as $string)
+	{
+		echo($string.' ');
+	}
+	echo ('<br/>');
+}
+
+function print_r2($val)
+{
+	echo '<pre>';
+	print_r($val);
+	echo '</pre>';
+}
 
 if(is_admin())
 {
