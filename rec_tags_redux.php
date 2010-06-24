@@ -126,6 +126,9 @@ function tag_list_generate_post()
 	$content = strtolower($content);
 	$content = preg_replace('/[-",.;—]/', '', $content);
 	$content_exploded = explode(" ", $content);
+	
+	echo($content);
+	
 	$phrases = array();
 	
 	$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,don't,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
@@ -144,42 +147,15 @@ function tag_list_generate_post()
 				}
 			}
 			
-			if(!(str_word_count($phrase) < $phrase_length)
-				&& !stristr($stop_words, $phrase))
+			$phrase = trim($phrase);
+			
+			if(!(str_word_count($phrase) < $phrase_length))
 			{
 				$phrase_exploded = explode(" ", $phrase);
-				array_pop($phrase_exploded);
 				$first_word = trim($phrase_exploded[0]);
 				
-				while(!empty($phrase_exploded))
-				{
-					if(stristr($stop_words, $first_word))
-					{
-						//echo "original: ";
-						//print_exploded($phrase_exploded);
-						
-						$phrase_exploded = array_reverse($phrase_exploded);
-						//echo "deleting: $first_word from ";
-						//print_exploded($phrase_exploded);
-						$deleted = array_pop($phrase_exploded);
-						
-						if(empty($phrase_exploded))
-						{
-							break;
-						}
-						
-						//echo "now it's: ";
-						//print_exploded($phrase_exploded);
-						$phrase_exploded = array_reverse($phrase_exploded);
-						$first_word = trim($phrase_exploded[0]);
-					}
-					else
-					{
-						break;
-					}
-				}
-				
-				if(!empty($phrase_exploded))
+				if(!empty($phrase_exploded)
+					&& !stristr($stop_words, $first_word))
 				{
 					$phrase = implode(" ", $phrase_exploded);
 					
