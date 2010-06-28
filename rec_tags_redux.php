@@ -3,22 +3,19 @@
 Plugin Name: Rec Tags Redux
 Plugin URI: #
 Description: Recommends tags based on post content as well as any existing tags in the database.
-Version: 0.4
+Tags in arrays are always associated to a "tag strength", an integer that measures how appropriate
+the tags is to recommend based on the post content. This value is determined by the word count of the tag,
+its frequency in the post, and its count in the wordpress database (number of times it has been tagged in
+other posts).
+Version: 0.7
 Author: Jimmy O'Higgins
 */
 
-//TODO
-/*
-Stemming function to compare two strings
-Stemming in database recs
-Stemming in final recs
-Stemming in post recs
-STEMMING EVERYWHERE
-*/
-
-require("PorterStemmer.php");
 ini_set('display_errors',1);
 error_reporting(E_ALL);
+
+//These words cannot be at the beginning or end of any tags
+$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
 
 function add_box()
 {
@@ -37,7 +34,6 @@ function box_routine()
 	$tags_db = tag_list_generate_db();
 	
 	//Final recommendations
-	echo "Final recommendations<br/>\n";
 	$tags_rec = $tags_post;
 	foreach($tags_rec as $tag_name => &$tag_strength)
 	{
@@ -48,19 +44,28 @@ function box_routine()
 		}
 	}
 	arsort($tags_rec);
-	//Print finals
-	$i = 0;
-	$limit = 15;
-	foreach($tags_rec as $tag_name => $tag_strength)
+	
+	if(!empty($tags_rec))
 	{
-		if($i++ == $limit) break;
-		$tag_length = str_word_count($tag_name);
-		if($tag_strength > $tag_length)
+		//Print finals
+		echo "Final recommendations<br/>\n";
+		$i = 0;
+		$limit = 20;
+		foreach($tags_rec as $tag_name => $tag_strength)
 		{
-			echo "$indent $tag_name => $tag_strength <br/>";
+			if($i++ == $limit) break;
+			$tag_length = str_word_count($tag_name);
+			if($tag_strength > $tag_length)
+			{
+				echo "$indent $tag_name => $tag_strength <br/>";
+			}
 		}
 	}
-	
+	else
+	{
+		echo "Save draft to refresh suggested tag list<br/>";
+	}
+	/*
 	//Print elements of tags_post
 	echo "Recommended tags from post<br/>\n";
 	$i = 0;
@@ -77,17 +82,18 @@ function box_routine()
 	{
 		echo "$indent $tag_name => $tag_strength <br/>\n";
 	}
+	*/
 }
 
 function tag_list_generate_db()
-{//Generates tags from existing tags in the database
-	global $post, $wpdb, $post_ID;
+{//Generates recommended tags from existing tags in the database
+	global $post, $stop_words;
 	
 	//Get tags from database
 	$tags = get_terms('post_tag', "get=all");
 	$tags_rec = array();
 	
-	//Flatten tag array so it only includes the tag name
+	//Convert array of tag structs ($tags) into array of $tag_name => $tag_strength ($tags_rec)
 	foreach($tags as $tag_object)
 	{
 		$name = trim($tag_object->name);
@@ -98,17 +104,36 @@ function tag_list_generate_db()
 	arsort($tags_rec);
 
 	if($tags_rec)
-	{	
+	{//Initialize post content
 		$content = $post->post_title;
 		$content .=  " ".$post->post_content;
 		$content = strip_tags($content);
 		$content = strtolower($content);
-		$content = preg_replace('/[-",.;—]/', '', $content);
+		$content = preg_replace('/[",.;]/', '', $content);
+		$content = preg_replace('/[-—]/', ' ', $content);
+		$content_exploded = explode(" ", $content);
+		$content_stemmed = array();
+		
+		//Explode db tags so that they match with partials in the post
+		foreach($tags_rec as $tag_name => $tag_strength)
+		{
+			if(str_word_count($tag_name) > 1)
+			{
+				$exploded = explode(" ", $tag_name);
+				foreach($exploded as $word)
+				{
+					if(!stristr($stop_words, $word))
+					{
+						$tags_rec[$word] = 0;
+					}
+				}
+			}
+		}
 		
 		//Evaluate tags
 		foreach($tags_rec as $tag_name => $tag_strength)
 		{
-			//Check for match
+			//Match tags to post content
 			if(!stristr($content, $tag_name))
 			{
 				unset($tags_rec[$tag_name]);
@@ -119,10 +144,18 @@ function tag_list_generate_db()
 	}
 }
 
+/*
+ * This function is based on a simple genetic sequencing algorithm used to find
+ * "k-mers", recurring base patterns of length k in a DNA sequence. Just as biologists want
+ * find every possible k-mer and count its frequency, we want to find every phrase and
+ * its frequency, using "words" analogously to the biologists' "base pair". Google
+ * "k-mer counting" if you're curious.
+ */
 function tag_list_generate_post()
 {
-	global $post;
+	global $post, $stop_words;
 	
+	$k = 5;
 	$phrases = array();
 	
 	$content = $post->post_title;
@@ -131,20 +164,22 @@ function tag_list_generate_post()
 	$content = strtolower($content);
 	$content = preg_replace('/[\/"’“”\']/', '', $content);
 	
-	$content_split = preg_split('/[().,!?—;:…\n]/', $content);
+	//Split the content at these symbols, which a tag will never contain
+	$content_split = preg_split('/[–().,!?—;:…\n]/', $content);
 	
-	$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,don't,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
-	
+	//Begin k-mer loop
 	foreach($content_split as $section)
 	{
 		$content_exploded = explode(" ", $section);
-		for($phrase_length = 1; $phrase_length < 4; $phrase_length++)
+		//$content_exploded = preg_split('/\W+/', $section);
+		
+		for($phrase_length = 1; $phrase_length < $k; $phrase_length++)
 		{
 			for($phrase_start = 0; $phrase_start < count($content_exploded); $phrase_start++)
 			{
 				$phrase = '';
 				for($word = 0; $word < $phrase_length; $word++)
-				{
+				{//Build phrase
 					$position = $phrase_start+$word;
 					if(array_key_exists($position, $content_exploded))
 					{
@@ -153,40 +188,76 @@ function tag_list_generate_post()
 				}
 				$phrase = trim($phrase);
 				
-				if(!(str_word_count($phrase) < $phrase_length))
+				//Single word
+				if((str_word_count($phrase) == $phrase_length) && (str_word_count($phrase) == 1))
+				{
+					if(!stristr($stop_words, $phrase))
+					{
+						$pluralized = $phrase.'s';
+						$pluralized = trim($pluralized);
+						//echo "pluralized = $pluralized<br/>";
+						print_r2($phrases);
+						if(in_array($pluralized, $phrases))
+						{
+							$phrases[] = $pluralized;
+							//echo "adding pluralized: $pluralized from $phrase<br/>";
+						}
+						else
+						{
+							$phrases[] = $phrase;
+							//echo "adding original: $phrase<br/>";
+						}
+					}
+				}
+				
+				//Phrase
+				if((str_word_count($phrase) == $phrase_length) && (str_word_count($phrase) > 1))
+				//if((str_word_count($phrase) == $phrase_length))
 				{
 					$phrase_exploded = explode(" ", $phrase);
 					$first_word = trim($phrase_exploded[0]);
 					$count = count($phrase_exploded);
-					--$count;
-					$last_word = trim($phrase_exploded[$count]);
+					$last_word = trim($phrase_exploded[--$count]);
 					
 					if(!empty($phrase_exploded)
 						&& !stristr($stop_words, $first_word)
 						&& !stristr($stop_words, $last_word))
 					{
 						$phrase = implode(" ", $phrase_exploded);
-						//echo "adding phrase $phrase to array<br/>";
 						$phrase = trim($phrase);
-						array_push($phrases, $phrase);
+						$phrases[] = $phrase;
+						
 					}
 				}
 			}
 		}
 	}
 	
+	//Multiply tag strength by the tag word count (max: 3)
 	$phrases = array_count_values($phrases);
-	
 	foreach($phrases as $phrase => &$strength)
 	{
 		$multiplier = str_word_count($phrase);
-		//$multiplier = 1;
+		if($multiplier > 3) $multiplier = 3;
 		$strength *= $multiplier;
 	}
 	
 	arsort($phrases);
 	
 	return $phrases;
+}
+
+function stem($word)
+{//What a joke...
+	if(substr($word, -1) == 's' && substr($word, -2) != 's')
+	{
+		$word = substr($word, 0, -1);
+	}
+	if(substr($word, -2) == 'ed' && strlen($word) > 3)
+	{
+		$word = substr($word, 0, -2);
+	}
+	return $word;
 }
 
 function print_exploded($array)
