@@ -188,31 +188,7 @@ function tag_list_generate_post()
 				}
 				$phrase = trim($phrase);
 				
-				//Single word
-				if((str_word_count($phrase) == $phrase_length) && (str_word_count($phrase) == 1))
-				{
-					if(!stristr($stop_words, $phrase))
-					{
-						$pluralized = $phrase.'s';
-						$pluralized = trim($pluralized);
-						//echo "pluralized = $pluralized<br/>";
-						print_r2($phrases);
-						if(in_array($pluralized, $phrases))
-						{
-							$phrases[] = $pluralized;
-							//echo "adding pluralized: $pluralized from $phrase<br/>";
-						}
-						else
-						{
-							$phrases[] = $phrase;
-							//echo "adding original: $phrase<br/>";
-						}
-					}
-				}
-				
-				//Phrase
-				if((str_word_count($phrase) == $phrase_length) && (str_word_count($phrase) > 1))
-				//if((str_word_count($phrase) == $phrase_length))
+				if((str_word_count($phrase) == $phrase_length))
 				{
 					$phrase_exploded = explode(" ", $phrase);
 					$first_word = trim($phrase_exploded[0]);
@@ -244,20 +220,24 @@ function tag_list_generate_post()
 	
 	arsort($phrases);
 	
+	//Check for plurals and match
+	foreach($phrases as $phrase => &$strength)
+	{
+		if(str_word_count($phrase) == 1)
+		{
+			$pluralized = $phrase.'s';
+			$pluralized = trim($pluralized);
+			if(array_key_exists($pluralized, $phrases))
+			{
+				$phrases[$pluralized] += $strength;
+				unset($phrases[$phrase]);
+			}
+		}
+	}
+	
+	//print_r2($phrases);
+	
 	return $phrases;
-}
-
-function stem($word)
-{//What a joke...
-	if(substr($word, -1) == 's' && substr($word, -2) != 's')
-	{
-		$word = substr($word, 0, -1);
-	}
-	if(substr($word, -2) == 'ed' && strlen($word) > 3)
-	{
-		$word = substr($word, 0, -2);
-	}
-	return $word;
 }
 
 function print_exploded($array)
