@@ -7,24 +7,26 @@ Tags in arrays are always associated to a "tag strength", an integer that measur
 the tags is to recommend based on the post content. This value is determined by the word count of the tag,
 its frequency in the post, and its count in the wordpress database (number of times it has been tagged in
 other posts).
-Version: 0.9
+Version: 1.0
 Author: Jimmy O'Higgins
 */
 
 //TODO
 //add uploaded file format type
+//clean up code
+//better comments
 
 ini_set('display_errors',1);
 error_reporting(E_ALL);
 
 //These words cannot be at the beginning or end of any tags
-$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,dont,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
+$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,dont,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
 
 function add_box()
 {
 	add_meta_box('boxid',
 				 'Rec Tags Redux',
-				 'box_routine',
+				 'tag_cloud',
 				 'post',
 				 'normal',
 				 'high');
@@ -32,7 +34,6 @@ function add_box()
 
 function box_routine()
 {
-	$indent = "&nbsp&nbsp&nbsp";
 	$tags_post = tag_list_generate_post();
 	$tags_db = tag_list_generate_db();
 	
@@ -60,7 +61,7 @@ function box_routine()
 			if($tag_strength > $tag_length)
 			{
 				?>
-				<a href="#" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name => $tag_strength<br/>"?></a>
+				<a href="#" style="font-size: <?php echo "$tag_strength"?>pt;" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name<br/>"?></a>
 				<?php
 			}
 		}
@@ -69,25 +70,6 @@ function box_routine()
 	{
 		echo "Save draft to refresh suggested tag list<br/>";
 	}
-	
-	/*
-	//Print elements of tags_post
-	echo "Recommended tags from post<br/>\n";
-	$i = 0;
-	$limit = 15;
-	foreach($tags_post as $phrase => $strength)
-	{
-		if($i++ == $limit) break;
-		echo "$indent $phrase => $strength <br/>\n";
-	}
-	
-	//Print elements of tags_db
-	echo "Recommended tags from db<br/>\n";
-	foreach($tags_db as $tag_name => $tag_strength)
-	{
-		echo "$indent $tag_name => $tag_strength <br/>\n";
-	}
-	*/
 }
 
 function tag_list_generate_db()
@@ -220,7 +202,15 @@ function tag_list_generate_post()
 	{
 		$multiplier = str_word_count($phrase);
 		if($multiplier > 3) $multiplier = 3;
-		$strength *= $multiplier;
+		$new_strength = $strength * $multiplier;
+		if($new_strength > $multiplier)
+		{
+			$strength = $new_strength;
+		}
+		else
+		{
+			unset($phrases[$phrase]);
+		}
 	}
 	
 	arsort($phrases);
@@ -266,6 +256,49 @@ function admin_add_my_script()
 {
 	$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
 	wp_enqueue_script('tag_add', $plugindir . '/add_tag.js', array('jquery'));
+}
+
+function tag_cloud()
+{
+	$limit = 15;
+	$tags_post = tag_list_generate_post();
+	$tags_db = tag_list_generate_db();
+	
+	//Final recommendations
+	$tags_rec = $tags_post;
+	foreach($tags_rec as $tag_name => &$tag_strength)
+	{
+		if(array_key_exists($tag_name, $tags_db))
+		{
+			$tag_strength *= 2;
+			$tag_strength += $tags_db[$tag_name];
+		}
+	}
+	arsort($tags_rec);
+	array_splice($tags_rec, $limit);
+	
+	$min_size = 10;
+	$max_size = 24;
+	
+	$minimum_strength = min(array_values($tags_rec));
+	$maximum_strength = max(array_values($tags_rec));
+	$spread = $maximum_strength - $minimum_strength;
+	
+	if($spread == 0)
+	{
+		$spread = 1;
+	}
+	
+	$step = ($max_size - $min_size)/($spread);
+	
+	foreach($tags_rec as $tag_name => $tag_strength)
+	{
+		$size = $min_size + ($tag_strength - $minimum_strength) * $step;
+		?>
+		<a href="#" style="font-size: <?php echo "$size"?>pt;" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name"?></a>
+		<?php
+		echo "&nbsp&nbsp&nbsp";
+	}
 }
 
 if(is_admin())
