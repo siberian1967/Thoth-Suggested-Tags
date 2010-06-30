@@ -7,7 +7,7 @@ Tags in arrays are always associated to a "tag strength", an integer that measur
 the tags is to recommend based on the post content. This value is determined by the word count of the tag,
 its frequency in the post, and its count in the wordpress database (number of times it has been tagged in
 other posts).
-Version: 0.7
+Version: 0.9
 Author: Jimmy O'Higgins
 */
 
@@ -59,12 +59,8 @@ function box_routine()
 			$tag_length = str_word_count($tag_name);
 			if($tag_strength > $tag_length)
 			{
-				//echo "$indent $tag_name => $tag_strength <br/>";
 				?>
-				<script>
-				var tag = <?= json_encode($tag_name); ?>;
-				</script>
-				<a href="#" onClick="tag_add(tag)"><?php echo "$tag_name => $tag_strength<br/>"?></a>
+				<a href="#" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name => $tag_strength<br/>"?></a>
 				<?php
 			}
 		}
@@ -266,15 +262,15 @@ function print_r2($val)
 	echo '</pre>';
 }
 
-function admin_add_script()
+function admin_add_my_script()
 {
 	$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
-	wp_enqueue_script('test', $plugindir . '/add_tag.js');
+	wp_enqueue_script('tag_add', $plugindir . '/add_tag.js', array('jquery'));
 }
 
 if(is_admin())
 {
 	add_action('admin_menu', 'add_box');
-	add_action('admin_print_scripts', 'admin_add_script');
+	add_action('admin_print_scripts', 'admin_add_my_script');
 }
 ?>
