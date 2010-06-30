@@ -11,11 +11,14 @@ Version: 0.7
 Author: Jimmy O'Higgins
 */
 
+//TODO
+//add uploaded file format type
+
 ini_set('display_errors',1);
 error_reporting(E_ALL);
 
 //These words cannot be at the beginning or end of any tags
-$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
+$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,dont,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
 
 function add_box()
 {
@@ -48,16 +51,21 @@ function box_routine()
 	if(!empty($tags_rec))
 	{
 		//Print finals
-		echo "Final recommendations<br/>\n";
 		$i = 0;
-		$limit = 20;
+		$limit = 15;
 		foreach($tags_rec as $tag_name => $tag_strength)
 		{
 			if($i++ == $limit) break;
 			$tag_length = str_word_count($tag_name);
 			if($tag_strength > $tag_length)
 			{
-				echo "$indent $tag_name => $tag_strength <br/>";
+				//echo "$indent $tag_name => $tag_strength <br/>";
+				?>
+				<script>
+				var tag = <?= json_encode($tag_name); ?>;
+				</script>
+				<a href="#" onClick="tag_add(tag)"><?php echo "$tag_name => $tag_strength<br/>"?></a>
+				<?php
 			}
 		}
 	}
@@ -65,6 +73,7 @@ function box_routine()
 	{
 		echo "Save draft to refresh suggested tag list<br/>";
 	}
+	
 	/*
 	//Print elements of tags_post
 	echo "Recommended tags from post<br/>\n";
@@ -257,9 +266,15 @@ function print_r2($val)
 	echo '</pre>';
 }
 
+function admin_add_script()
+{
+	$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
+	wp_enqueue_script('test', $plugindir . '/add_tag.js');
+}
+
 if(is_admin())
 {
 	add_action('admin_menu', 'add_box');
+	add_action('admin_print_scripts', 'admin_add_script');
 }
-
 ?>
