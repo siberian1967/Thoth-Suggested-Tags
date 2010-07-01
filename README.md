@@ -9,7 +9,7 @@ by Jimmy O'Higgins
 Introduction
 ---
 
-Thoth's Tag Suggestions is a WordPress plugin that recommends tags by scanning a post and displaying recurring words and phrases as a tag cloud.
+Thoth's Suggested Tags is a WordPress plugin that recommends tags by scanning a post and displaying recurring words and phrases as a tag cloud.
 
 Installation
 ---

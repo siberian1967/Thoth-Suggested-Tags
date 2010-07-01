@@ -18,7 +18,7 @@ ini_set('display_errors',1);
 error_reporting(E_ALL);
 
 //These words cannot be at the beginning or end of any tags
-$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,don't,dont,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
+$stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,both,but,by,can,cannot,could,dear,did,do,does,doesnt,dont,either,else,ever,every,for,from,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,instead,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
 
 function add_box()
 {
