@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Rec Tags Redux
+Plugin Name: Suggested Tags
 Plugin URI: #
 Description: Recommends tags based on post content as well as any existing tags in the database.
 Tags in arrays are always associated to a "tag strength", an integer that measures how appropriate
@@ -25,19 +25,27 @@ $stop_words = str_replace(",", " ", " a,able,about,across,after,all,almost,also,
 function add_box()
 {
 	add_meta_box('boxid',
-				 'Rec Tags Redux',
-				 'tag_cloud',
+				 'Suggested Tags',
+				 'box_routine',
 				 'post',
 				 'normal',
 				 'high');
 }
 
 function box_routine()
-{
+{//Generates a tag cloud from tag list
+	$limit = 15;
 	$tags_post = tag_list_generate_post();
 	$tags_db = tag_list_generate_db();
 	
-	//Final recommendations
+	//No tags from post
+	if(empty($tags_post))
+	{
+		echo "Click 'Save Draft' to refresh tag suggestions.";
+		return;
+	}
+	
+	//If tag exists in database, double its strength and add its database count.
 	$tags_rec = $tags_post;
 	foreach($tags_rec as $tag_name => &$tag_strength)
 	{
@@ -48,27 +56,28 @@ function box_routine()
 		}
 	}
 	arsort($tags_rec);
+	array_splice($tags_rec, $limit);
 	
-	if(!empty($tags_rec))
+	//Init tag cloud variables
+	$min_size = 10;
+	$max_size = 24;
+	
+	$minimum_strength = min(array_values($tags_rec));
+	$maximum_strength = max(array_values($tags_rec));
+	
+	$spread = $maximum_strength - $minimum_strength;
+	if($spread == 0) $spread = 1;
+	
+	$step = ($max_size - $min_size)/($spread);
+	
+	//Print tag cloud
+	foreach($tags_rec as $tag_name => $tag_strength)
 	{
-		//Print finals
-		$i = 0;
-		$limit = 15;
-		foreach($tags_rec as $tag_name => $tag_strength)
-		{
-			if($i++ == $limit) break;
-			$tag_length = str_word_count($tag_name);
-			if($tag_strength > $tag_length)
-			{
-				?>
-				<a href="#" style="font-size: <?php echo "$tag_strength"?>pt;" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name<br/>"?></a>
-				<?php
-			}
-		}
-	}
-	else
-	{
-		echo "Save draft to refresh suggested tag list<br/>";
+		$size = $min_size + ($tag_strength - $minimum_strength) * $step;
+		?>
+		<a href="#" style="font-size: <?php echo "$size"?>pt;" onClick="tag_add('<?php echo $tag_name; ?>');return false;"><?php echo "$tag_name"?></a>
+		<?php
+		echo "&nbsp&nbsp&nbsp";
 	}
 }
 
@@ -80,14 +89,13 @@ function tag_list_generate_db()
 	$tags = get_terms('post_tag', "get=all");
 	$tags_rec = array();
 	
-	//Convert array of tag structs ($tags) into array of $tag_name => $tag_strength ($tags_rec)
+	//Convert $tags = array of tag structs into $tags_rec = array of $tag_name => $tag_strength
 	foreach($tags as $tag_object)
 	{
 		$name = trim($tag_object->name);
 		$strength = $tag_object->count;
 		$tags_rec[$name] = $strength;
 	}
-	
 	arsort($tags_rec);
 
 	if($tags_rec)
@@ -126,23 +134,24 @@ function tag_list_generate_db()
 				unset($tags_rec[$tag_name]);
 			}
 		}
+
 		//Return only the matches
 		return $tags_rec;
 	}
 }
 
 /*
- * This function is based on a simple genetic sequencing algorithm used to find
+ * The main loop in this function is based on a simple genetic sequencing algorithm used to find
  * "k-mers", recurring base patterns of length k in a DNA sequence. Just as biologists want
  * find every possible k-mer and count its frequency, we want to find every phrase and
- * its frequency, using "words" analogously to the biologists' "base pair". Google
- * "k-mer counting" if you're curious.
+ * its frequency, using "words" and "content" analogously to the biologists' "base pair" and "gene".
+ * Google "k-mer counting" if you're curious.
  */
 function tag_list_generate_post()
 {
 	global $post, $stop_words;
 	
-	$k = 5;
+	$phrase_length_max = 4;
 	$phrases = array();
 	
 	$content = $post->post_title;
@@ -151,16 +160,15 @@ function tag_list_generate_post()
 	$content = strtolower($content);
 	$content = preg_replace('/[\/"’“”\']/', '', $content);
 	
-	//Split the content at these symbols, which a tag will never contain
+	//Split the content at these symbols, which delimit possible tags
 	$content_split = preg_split('/[–().,!?—;:…\n]/', $content);
 	
 	//Begin k-mer loop
 	foreach($content_split as $section)
 	{
 		$content_exploded = explode(" ", $section);
-		//$content_exploded = preg_split('/\W+/', $section);
 		
-		for($phrase_length = 1; $phrase_length < $k; $phrase_length++)
+		for($phrase_length = 1; $phrase_length < $phrase_length_max; $phrase_length++)
 		{
 			for($phrase_start = 0; $phrase_start < count($content_exploded); $phrase_start++)
 			{
@@ -174,7 +182,9 @@ function tag_list_generate_post()
 					}
 				}
 				$phrase = trim($phrase);
+				//Phrase built
 				
+				//Evaluate phrase
 				if((str_word_count($phrase) == $phrase_length))
 				{
 					$phrase_exploded = explode(" ", $phrase);
@@ -182,6 +192,7 @@ function tag_list_generate_post()
 					$count = count($phrase_exploded);
 					$last_word = trim($phrase_exploded[--$count]);
 					
+					//Phrase cannot be empty, or begin/end with a stop word
 					if(!empty($phrase_exploded)
 						&& !stristr($stop_words, $first_word)
 						&& !stristr($stop_words, $last_word))
@@ -189,12 +200,12 @@ function tag_list_generate_post()
 						$phrase = implode(" ", $phrase_exploded);
 						$phrase = trim($phrase);
 						$phrases[] = $phrase;
-						
 					}
 				}
 			}
 		}
 	}
+	//End k-mer loop
 	
 	//Multiply tag strength by the tag word count (max: 3)
 	$phrases = array_count_values($phrases);
@@ -204,15 +215,14 @@ function tag_list_generate_post()
 		if($multiplier > 3) $multiplier = 3;
 		$new_strength = $strength * $multiplier;
 		if($new_strength > $multiplier)
-		{
+		{//Strong tag, multiply
 			$strength = $new_strength;
 		}
 		else
-		{
+		{//Weak tag, discard
 			unset($phrases[$phrase]);
 		}
 	}
-	
 	arsort($phrases);
 	
 	//Check for plurals and match
@@ -229,9 +239,6 @@ function tag_list_generate_post()
 			}
 		}
 	}
-	
-	//print_r2($phrases);
-	
 	return $phrases;
 }
 
@@ -256,49 +263,6 @@ function admin_add_my_script()
 {
 	$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
 	wp_enqueue_script('tag_add', $plugindir . '/add_tag.js', array('jquery'));
-}
-
-function tag_cloud()
-{
-	$limit = 15;
-	$tags_post = tag_list_generate_post();
-	$tags_db = tag_list_generate_db();
-	
-	//Final recommendations
-	$tags_rec = $tags_post;
-	foreach($tags_rec as $tag_name => &$tag_strength)
-	{
-		if(array_key_exists($tag_name, $tags_db))
-		{
-			$tag_strength *= 2;
-			$tag_strength += $tags_db[$tag_name];
-		}
-	}
-	arsort($tags_rec);
-	array_splice($tags_rec, $limit);
-	
-	$min_size = 10;
-	$max_size = 24;
-	
-	$minimum_strength = min(array_values($tags_rec));
-	$maximum_strength = max(array_values($tags_rec));
-	$spread = $maximum_strength - $minimum_strength;
-	
-	if($spread == 0)
-	{
-		$spread = 1;
-	}
-	
-	$step = ($max_size - $min_size)/($spread);
-	
-	foreach($tags_rec as $tag_name => $tag_strength)
-	{
-		$size = $min_size + ($tag_strength - $minimum_strength) * $step;
-		?>
-		<a href="#" style="font-size: <?php echo "$size"?>pt;" onClick="tag_add('<?php echo $tag_name; ?>')"><?php echo "$tag_name"?></a>
-		<?php
-		echo "&nbsp&nbsp&nbsp";
-	}
 }
 
 if(is_admin())
