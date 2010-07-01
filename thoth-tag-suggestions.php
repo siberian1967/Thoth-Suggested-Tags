@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Suggested Tags
+Plugin Name: Thoth's Tag Suggestions
 Plugin URI: #
 Description: Recommends tags based on post content as well as any existing tags in the database.
 Tags in arrays are always associated to a "tag strength", an integer that measures how appropriate
@@ -13,8 +13,6 @@ Author: Jimmy O'Higgins
 
 //TODO
 //add uploaded file format type
-//clean up code
-//better comments
 
 ini_set('display_errors',1);
 error_reporting(E_ALL);
