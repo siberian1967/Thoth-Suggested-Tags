@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Thoth's Suggested Tags
-Plugin URI: #
+Plugin URI: http://wiki.github.com/edlab/Thoth-Suggested-Tags/
 Description: Recommends tags based on post content as well as any existing tags in the database.
 Tags in arrays are always associated to a "tag strength", an integer that measures how appropriate
 the tags is to recommend based on the post content. This value is determined by the word count of the tag,
