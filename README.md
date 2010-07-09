@@ -1,10 +1,10 @@
 Thoth's Tag Suggestions
 ===
-
-Version 1.0 - July 1, 2010
-Compatible with WordPress 3.0 or higher
-
-by Jimmy O'Higgins
+Contributors: Jimmy O'Higgins
+Tags: tags, tag cloud, suggestion
+Requires at least: 3.0
+Tested up to: 3.0
+Stable tag: 1.0
 
 Introduction
 ---
@@ -14,7 +14,7 @@ Thoth's Suggested Tags is a WordPress plugin that recommends tags by scanning a 
 Installation
 ---
 
-Upload the thoth-tag-suggestions folder to your wp-content/plugins folder.
+Upload the `thoth-tag-suggestions` folder to your `wp-content/plugins` folder.
 
 Go to the "Plugins" administration panel.
 
