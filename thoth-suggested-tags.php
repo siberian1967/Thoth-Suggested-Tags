@@ -292,8 +292,8 @@ function print_r2($val)
 
 function admin_add_my_script()
 {
-	//$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
-	$plugindir = 'PO_INCLUDES' . dirname(plugin_basename(__FILE__));
+	$plugindir = get_settings('home').'/wp-content/plugins/'.dirname(plugin_basename(__FILE__));
+	//$plugindir = 'PO_INCLUDES' . dirname(plugin_basename(__FILE__));
 	wp_enqueue_script('tag_add', $plugindir . '/thoth-add-tag.js', array('jquery'));
 }
 
