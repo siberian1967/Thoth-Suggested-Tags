@@ -1,4 +1,5 @@
-=== Thoth's Suggested Tags ===
+Thoth's Suggested Tags
+===
 
 Contributors: Jimmy O'Higgins
 Tags: tags, tag cloud, suggestion
@@ -8,11 +9,13 @@ Stable tag: 1.0
 
 Thoth's Suggested Tags is a WordPress plugin that recommends tags by scanning a post and displaying recurring words and phrases as a tag cloud.
 
-== Description ==
+Description
+---
 
 Thoth scans the text for tags are and associates them to a "tag strength", an integer that represents how appropriate the tag is to recommend based on the post content. This value is determined by the word count of the tag, its frequency in the post, and its count in the wordpress database (number of times it has been tagged in other posts).
 
-= How It Works =
+How It Works
+---
 
 Every time the user saves a draft or updates a post, Thoth
 
@@ -22,7 +25,8 @@ Every time the user saves a draft or updates a post, Thoth
 
 + Does post-processing on the phrase list and displays the final list as a tag cloud. For more information consult the "Features" section.
 
-= Features =
+Features
+---
 
 + Tag strength (`$strength` in the code) is an integer representing the likelihood of the tag being appropriate to the post. A tag's strength is initially determined by its frequency in the post.
 
@@ -34,7 +38,8 @@ Every time the user saves a draft or updates a post, Thoth
 
 + Existing tags - Thoth also retrieves all the tags used in your blog and searches for instances of them in the content of the post. In the case of a match, the tag strength is multiplied by 2 and incremented by the number of times that tag has been used in your blog. This means that if your blog has a unifying theme, certain tags are likely to be reused and will enable Thoth to make better suggestions.
 
-== Installation ==
+Installation
+---
 
 Upload the `thoth-tag-suggestions` folder to your `wp-content/plugins` folder.
 
@@ -45,7 +50,8 @@ Activate Thoth's Suggested Tags
 Thoth is now with you.
 
 
-== Version History ==
+Version History
+---
 
 1.0 (July 1, 2010)
 
