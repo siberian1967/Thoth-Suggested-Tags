@@ -8,10 +8,10 @@ Version: 1.0
 Author: Jimmy O'Higgins
 */
 
-if(is_dir(WPMU_PLUGIN_DIR . '/toth-suggested-tags'))
-	define('TOTH_INCLUDES', WPMU_PLUGIN_URL . '/toth-suggested-tags');
+if(is_dir(WPMU_PLUGIN_DIR . '/thoth-suggested-tags'))
+	define('THOTH_INCLUDES', WPMU_PLUGIN_URL . '/thoth-suggested-tags');
 else
-	define('TOTH_INCLUDES', WP_PLUGIN_URL . '/toth-suggested-tags');
+	define('THOTH_INCLUDES', WP_PLUGIN_URL . '/thoth-suggested-tags');
 
 //These words cannot be at the beginning or end of any tags
 $stop_words = str_replace(",", " ", " a,&amp,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,began,both,but,by,can,cannot,could,dear,did,do,does,doesnt,dont,either,else,ever,every,for,from,gave,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,instead,is,it,its,just,least,let,like,likely,many,may,me,might,most,more,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,take,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
@@ -292,7 +292,7 @@ function print_r2($val)
 
 function admin_add_my_script()
 {
-	wp_enqueue_script('thoth-add-tag', TOTH_INCLUDES . '/thoth-add-tag.js', array('jquery'));
+	wp_enqueue_script('thoth-add-tag', THOTH_INCLUDES . '/thoth-add-tag.js', array('jquery'));
 }
 
 if(is_admin())
