@@ -41,17 +41,27 @@ Features
 Installation
 ---
 
-Upload the `thoth-tag-suggestions` folder to your `wp-content/plugins` folder.
-
-Go to the "Plugins" administration panel.
-
-Activate Thoth's Suggested Tags
+1. Upload the `thoth-tag-suggestions` folder to your `wp-content/plugins` folder.
+2. Go to the "Plugins" administration panel.
+3. Activate Thoth's Suggested Tags
 
 Thoth is now with you.
 
 
-Version History
+Changelog
 ---
+
+1.1 (July 13, 2010)
+
+* Added support for proper nouns and proper phrases using capital letters (e.g. "Grapes of Wrath" is a proper phrase and gets a higher recommendation).
+
+* Added a "video" and "audio" tag recommendation if any embedded video or audio files are detected in the post.
+
+* Implemented a check for duplicate tags. Previously, (for example) the tag "Windows Vista" with a strength of 6 would also generate tags "Windows" and "Vista" both with strengths of 6. This redundancy is now removed; tags will only be counted when they are not contained in another already recommended tag.
+
+* Reworked the entire post-processing code structure for better efficiency and readability.
+
+* Set default meta-box position to the sidebar
 
 1.0 (July 1, 2010)
 

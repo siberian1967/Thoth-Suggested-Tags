@@ -3,10 +3,14 @@
 Plugin Name: Thoth's Suggested Tags
 Plugin URI: http://wiki.github.com/edlab/Thoth-Suggested-Tags/
 Description: Recommends tags in a tag cloud based on post content as well as any existing tags in the database.
-Tags in arrays are associated to a "tag strength", an integer that measures how appropriate the tag is to recommend based on the post content. This value is determined by the word count of the tag, its frequency in the post, and its count in the wordpress database (number of times it has been tagged in other posts).
-Version: 1.0
+Version: 1.1
 Author: Jimmy O'Higgins
 */
+
+//TODO
+//Citations
+//contained
+//identify db tags
 
 if(is_dir(WPMU_PLUGIN_DIR . '/thoth-suggested-tags'))
 	define('THOTH_INCLUDES', WPMU_PLUGIN_URL . '/thoth-suggested-tags');
@@ -14,7 +18,10 @@ else
 	define('THOTH_INCLUDES', WP_PLUGIN_URL . '/thoth-suggested-tags');
 
 //These words cannot be at the beginning or end of any tags
-$stop_words = str_replace(",", " ", " a,&amp,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,began,both,but,by,can,cannot,could,dear,did,do,does,doesnt,dont,either,else,ever,every,for,from,gave,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,instead,is,it,its,just,least,let,like,likely,many,may,me,might,most,more,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,take,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
+$stop_words = str_replace(",", " ", " a,&amp,able,about,across,after,all,almost,also,am,among,an,and,any,are,arent,as,at,be,because,between,been,began,both,but,by,can,cannot,could,dear,did,do,does,doesnt,dont,either,else,ever,every,for,from,gave,get,got,had,has,have,he,her,here,hers,him,his,how,however,i,if,in,into,instead,is,it,its,least,let,like,likely,many,may,me,might,most,more,must,my,neither,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,shall,she,should,since,so,some,take,than,that,the,their,them,then,there,theres,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your ");
+
+//These words cannot be tags by themselves
+$single_words = $stop_words . "i ii iii iv v one two three four five six seven eight nine ten long short up down left right great far near stand eyes hand years time box just no yes big little large small asked placed put happens happen another without someone anything something enough think much around things type ";
 
 function add_box()
 {
@@ -22,12 +29,13 @@ function add_box()
 				 'Suggested Tags',
 				 'box_routine',
 				 'post',
-				 'normal',
-				 'high');
+				 'side',
+				 'low');
 }
 
 function box_routine()
 {//Generates a tag cloud from tag list
+	
 	$limit = 15;
 	$tags_post = tag_list_generate_post();
 	$tags_db = tag_list_generate_db();
@@ -61,6 +69,7 @@ function box_routine()
 	arsort($tags_rec);
 	array_splice($tags_rec, $limit);
 	
+	//TAG CLOUD
 	//Init tag cloud variables
 	$min_size = 10;
 	$max_size = 24;
@@ -92,7 +101,7 @@ function tag_list_generate_db()
 	$tags = get_terms('post_tag', "get=all");
 	$tags_rec = array();
 	
-	//Convert $tags = array of tag structs into $tags_rec = array of $tag_name => $tag_strength
+	//Convert $tags = array(tag structs) into $tags_rec = array($tag_name => $tag_strength)
 	foreach($tags as $tag_object)
 	{
 		$name = trim($tag_object->name);
@@ -108,7 +117,7 @@ function tag_list_generate_db()
 		$content = strip_tags($content);
 		$content = strtolower($content);
 		$content = preg_replace('/[",.;]/', '', $content);
-		$content = preg_replace('/[-—]/', ' ', $content);
+		$content = preg_replace('/[–-—]/', ' ', $content);
 		$content_exploded = explode(" ", $content);
 		$content_stemmed = array();
 		
@@ -152,16 +161,17 @@ function tag_list_generate_db()
  */
 function tag_list_generate_post()
 {
-	global $post, $stop_words;
+	global $post, $stop_words, $single_words;
 	
 	$phrase_length_max = 4;
 	$phrases = array();
 	
+	//Initialize post content
 	$content = $post->post_title;
 	$content .=  " ".$post->post_content;
 	$content = strip_tags($content);
-	$content = strtolower($content);
 	$content = preg_replace('/[\/"’“”\']/', '', $content);
+	$content = preg_replace('/[–-—]/', ' ', $content);
 	
 	//Split the content at these symbols, which delimit possible tags
 	$content_split = preg_split('/[–().,!?—;:…\n]/', $content);
@@ -193,16 +203,34 @@ function tag_list_generate_post()
 					$phrase_exploded = explode(" ", $phrase);
 					$first_word = trim($phrase_exploded[0]);
 					$count = count($phrase_exploded);
-					$last_word = trim($phrase_exploded[--$count]);
+					$last_word = trim($phrase_exploded[$count-1]);
 					
-					//Phrase cannot be empty, or begin/end with a stop word
-					if(!empty($phrase_exploded)
-						&& !stristr($stop_words, $first_word)
-						&& !stristr($stop_words, $last_word))
-					{//Add phrase
-						$phrase = implode(" ", $phrase_exploded);
-						$phrase = trim($phrase);
-						$phrases[] = $phrase;
+					$phrase = implode(" ", $phrase_exploded);
+					$phrase = trim($phrase);
+					
+					//Phrase cannot be empty
+					if(!empty($phrase_exploded))
+					{
+						//Phrase length = 1
+						if($count == 1 && !stristr($single_words, $phrase))
+						{
+							$phrases[] = $phrase;
+						}
+						//Phrase length = 2
+						else if($count == 2
+								&& !stristr($stop_words, $first_word)
+								&& !stristr($stop_words, $last_word))
+						{
+							$phrases[] = $phrase;
+						}
+						//Phrase length = 3
+						else if($count > 2
+								&& !stristr($stop_words, $first_word)
+								&& !stristr($stop_words, $last_word)
+								&& is_proper_phrase($phrase))
+						{//Phrase must be proper
+							$phrases[] = $phrase;
+						}
 					}
 				}
 			}
@@ -210,29 +238,25 @@ function tag_list_generate_post()
 	}
 	//End k-mer loop
 	
-	//Multiply tag strength by the tag word count (max: 3)
+	//Begin postprocessing
 	$phrases = array_count_values($phrases);
-	foreach($phrases as $phrase => &$strength)
+	arsort($phrases);
+	
+	//Discard weak tags
+	foreach($phrases as $phrase => $strength)
 	{
-		$multiplier = str_word_count($phrase);
-		if($multiplier > 3) $multiplier = 3;
-		$new_strength = $strength * $multiplier;
-		if($new_strength > $multiplier)
-		{//Strong tag, multiply
-			$strength = $new_strength;
-		}
-		else
-		{//Weak tag, discard
+		if($strength < 2)
+		{
 			unset($phrases[$phrase]);
 		}
 	}
-	arsort($phrases);
 	
-	//Check for plurals and match
 	foreach($phrases as $phrase => &$strength)
 	{
+		//For single words
 		if(str_word_count($phrase) == 1)
 		{
+			//Check for plurals/lowercase and match
 			$pluralized = $phrase.'s';
 			$pluralized = trim($pluralized);
 			if(array_key_exists($pluralized, $phrases))
@@ -240,8 +264,33 @@ function tag_list_generate_post()
 				$phrases[$pluralized] += $strength;
 				unset($phrases[$phrase]);
 			}
+			
+			//Check for duplicates
+			foreach($phrases as $phrase2 => $strength2)
+			{
+				if(strcasecmp($phrase, $phrase2)
+					&& strstr($phrase2, $phrase))
+				{
+					if($strength == $strength2)
+					{
+						//echo "deleting $phrase < $phrase2<br/><br/>";
+						unset($phrases[$phrase]);
+					}
+					else if($strength > $strength2)
+					{
+						//echo "weaknening $phrase => $strength by $phrase2 => $strength2<br/>";
+						$strength -= $strength2;
+						//echo "new $phrase => $strength<br/><br/>";
+					}
+				}
+			}
 		}
+		//Multiply by phrase length
+		$multiplier = str_word_count($phrase);
+		if($multiplier > 3) $multiplier = 3;
+		$strength *= $multiplier;
 	}
+	
 	return $phrases;
 }
 
@@ -251,7 +300,9 @@ function tag_list_generate_attach()
 	$content = $post->post_content;
 	$tags_rec = array();
 	$video_count = 0;
+	$audio_count = 0;
 	$video_strength = 4;
+	$audio_strength = 4;
 	
 	//Array of strings to associate with video
 	$video_strings = array('http://www.youtube.com/', 'http://vimeo.com/', 'http://www.dailymotion.com/', 'http://video.google.com/', '.avi', '.divx', '.flv', '.m4v', '.mov', '.mp4', '.mkv', '.mpg', '.ogm', '.swf', '.vob', '.wmv', '.xvid');
@@ -261,14 +312,16 @@ function tag_list_generate_attach()
 	
 	//Search for video-associated strings in post
 	foreach($video_strings as $video_type)
-	{
 		$video_count += substr_count($content, $video_type);
-	}
 	
 	if($video_count)
-	{
 		$tags_rec['video'] = $video_count * $video_strength;
-	}
+	
+	foreach($audio_strings as $audio_type)
+		$audio_count += substr_count($content, $audio_type);
+	
+	if($audio_count)
+		$tags_rec['audio'] = $audio_count * $audio_strength;
 	
 	return $tags_rec;
 }
@@ -288,6 +341,31 @@ function print_r2($val)
 	echo '<pre>';
 	print_r($val);
 	echo '</pre>';
+}
+
+function is_proper($string)
+{
+	$string_split = str_split($string);
+	$first_letter = $string_split[0];
+	$pattern = '/[A-Z]/';
+	$proper = preg_match($pattern, $first_letter);
+	if($proper)
+		return true;
+	else
+		return false;
+}
+
+function is_proper_phrase($phrase)
+{
+	$phrase_exploded = explode(" ", $phrase);
+	$count = count($phrase_exploded);
+	$first_word = trim($phrase_exploded[0]);
+	$last_word = trim($phrase_exploded[$count-1]);
+	$proper = is_proper($first_word) && is_proper($last_word);
+	if($proper)
+		return true;
+	else
+		return false;
 }
 
 function admin_add_my_script()
