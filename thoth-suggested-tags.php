@@ -3,7 +3,7 @@
 Plugin Name: Thoth's Suggested Tags
 Plugin URI: http://wiki.github.com/edlab/Thoth-Suggested-Tags/
 Description: Recommends tags in a tag cloud based on post content as well as any existing tags in the database.
-Version: 1.2
+Version: 1.3
 Author: Jimmy O'Higgins
 */
 
@@ -57,7 +57,9 @@ function box_routine()
 	
 	foreach($tags_rec as $tag_name => &$tag_strength)
 	{
-		if(array_key_exists($tag_name, $tags_db))
+		if(is_array($tags_db)
+			&& !empty($tags_db)
+			&& array_key_exists($tag_name, $tags_db))
 		{//If tag exists in database, double its strength and add its database count.
 			$tag_strength *= 2;
 			$tag_strength += $tags_db[$tag_name];

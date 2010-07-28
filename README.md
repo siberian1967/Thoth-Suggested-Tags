@@ -36,7 +36,7 @@ Features
 
 + Pluralization - For every potential single-word tag, Thoth adds a plural suffix 's' and searches for matches in the potential tag list. If a match is found, the tag strength of the singular is transferred to the plural version (e.g. "download" becomes "downloads"). If a match is not found, the singular is used.
 
-+ Existing tags - Thoth also retrieves all the tags used in your blog and searches for instances of them in the content of the post. In the case of a match, the tag strength is multiplied by 2 and incremented by the number of times that tag has been used in your blog. This means that if your blog has a unifying theme, certain tags are likely to be reused and will enable Thoth to make better suggestions.
++ Existing tags - Thoth also retrieves all the tags used in your blog and searches for instances of them in the content of the post. In the case of a match, the tag strength is multiplied by 2 and incremented by the number of times that tag has been used in your blog. This means that if your blog has a unifying theme, certain tags are likely to be reused and will enable Thoth to make better suggestions. Matches are recommended with an asterisk at the end.
 
 Installation
 ---
@@ -50,6 +50,18 @@ Thoth is now with you.
 
 Changelog
 ---
+
+1.3 (July 26, 2010)
+
+* Reinforced stop-words list to better filter irrelevant tags
+
+* Fixed a bug where the database checking for tags was done on an empty database (this only occurred in Wordpress MU)
+
+1.2 (July 21, 2010)
+
+* Implemented capitalization check so that any capitalized word that also appears in the post in lowercase is automatically converted to lowercase (since it cannot be a proper noun).
+
+* Added an asterisk indicator at the end of tags that were matched to the database.
 
 1.1 (July 13, 2010)
 
