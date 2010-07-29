@@ -8,7 +8,6 @@ Author: Jimmy O'Higgins
 */
 
 //TODO
-//Citations
 
 if(is_dir(WPMU_PLUGIN_DIR . '/thoth-suggested-tags'))
 	define('THOTH_INCLUDES', WPMU_PLUGIN_URL . '/thoth-suggested-tags');
@@ -343,6 +342,7 @@ function tag_list_generate_attach()
 	if($video_count)
 		$tags_rec['video'] = $video_count * $video_strength;
 	
+	//Search for audio-associated strings in post
 	foreach($audio_strings as $audio_type)
 		$audio_count += substr_count($content, $audio_type);
 	
@@ -350,14 +350,6 @@ function tag_list_generate_attach()
 		$tags_rec['audio'] = $audio_count * $audio_strength;
 	
 	return $tags_rec;
-}
-
-function print_exploded($array)
-{
-	$exploded = $array;
-	foreach($exploded as $string)
-		echo($string.' ');
-	echo ('<br/>');
 }
 
 function print_r2($val)
