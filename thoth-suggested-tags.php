@@ -9,6 +9,14 @@ Author: Jimmy O'Higgins
 
 //TODO
 
+// John Armstrong - added shadow fcfirst function for 5.2 compat
+//  cribbed from http://erhanabay.com/2009/07/01/php-lcfirst/
+if (!function_exists('lcfirst')) {
+	function lcfirst($string) {
+		return substr_replace($string, strtolower(substr($string, 0, 1)), 0, 1);
+	}
+}
+
 if(is_dir(WPMU_PLUGIN_DIR . '/thoth-suggested-tags'))
 	define('THOTH_INCLUDES', WPMU_PLUGIN_URL . '/thoth-suggested-tags');
 else
@@ -28,6 +36,12 @@ function add_box()
 				 'post',
 				 'side',
 				 'low');
+        add_meta_box('boxid',
+                                 'Suggested Tags',
+                                 'box_routine',
+                                 'page',
+                                 'side',
+                                 'low');
 }
 
 function box_routine()
